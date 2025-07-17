@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Zap, Bell, Settings, Wallet, Bot, Search, Filter, ChevronDown } from 'lucide-react';
-import AIAgentPage from './AIAgentPage';
+import AIAgentPage from './AIAgentPage2';
 import LendingProtocolsPage from './LendingProtocolsPage';
 import BorrowersPage from './BorrowersPage';
 import LendersPage from './LendersPage';

@@ -15,11 +15,13 @@ const apiService = {
       },
       body: JSON.stringify({ wallet_address: walletAddress }),
     });
+    console.log(response);
     return response.json();
   },
 
   getConnectedWallet: async () => {
     const response = await fetch(`${API_BASE_URL}/get-wallet`);
+    console.log(response);
     if (response.ok) {
       return response.json();
     }
@@ -40,16 +42,19 @@ const apiService = {
       },
       body: JSON.stringify(planData),
     });
+    console.log(response);
     return response.json();
   },
 
   getSpendingPlans: async () => {
     const response = await fetch(`${API_BASE_URL}/get-plans`);
+    console.log(response);
     return response.json();
   },
 
   getSpendingPlan: async (planId: string) => {
     const response = await fetch(`${API_BASE_URL}/get-plan/${planId}`);
+    console.log(response);
     return response.json();
   },
 
@@ -57,6 +62,7 @@ const apiService = {
     const response = await fetch(`${API_BASE_URL}/approve-plan/${planId}`, {
       method: 'POST',
     });
+    console.log(response);
     return response.json();
   },
 
@@ -64,17 +70,20 @@ const apiService = {
     const response = await fetch(`${API_BASE_URL}/execute-plan/${planId}`, {
       method: 'POST',
     });
+    console.log(response);
     return response.json();
   },
 
   // Transaction operations
   getTransactions: async () => {
     const response = await fetch(`${API_BASE_URL}/get-transactions`);
+    console.log(response);
     return response.json();
   },
 
   getTransaction: async (transactionId: string) => {
     const response = await fetch(`${API_BASE_URL}/get-transaction/${transactionId}`);
+    console.log(response);
     return response.json();
   },
 };
@@ -189,7 +198,10 @@ const AIAgentPage: React.FC = () => {
   };
 
   const handleConnectWallet = async () => {
-    if (!walletAddress.trim()) return;
+    if (!walletAddress.trim()) {
+      console.log("No wallet address provided");
+      return;
+    }
     
     try {
       await apiService.connectWallet(walletAddress);
@@ -959,4 +971,160 @@ const AIAgentPage: React.FC = () => {
       {showExecutePlanModal && selectedPlan && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-lg w-full mx-4 border border-purple-500 border-opacity-30">
-            <div className="text-c
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Plan Executed Successfully!</h3>
+              <p className="text-purple-300 text-sm mb-4">
+                Your spending plan has been executed and all transactions have been processed
+              </p>
+              
+              <div className="bg-purple-900 bg-opacity-20 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-2 mb-3">
+                  <DollarSign className="w-5 h-5 text-green-400" />
+                  <span className="text-green-400 font-medium">Execution Summary</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-purple-300 text-sm">Total Amount:</span>
+                    <span className="text-white font-medium">${selectedPlan.amount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-300 text-sm">Transactions:</span>
+                    <span className="text-white font-medium">{selectedPlan.allocations.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-300 text-sm">Status:</span>
+                    <span className="text-green-400 font-medium">Completed</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 border border-yellow-500 border-opacity-30">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-400" />
+                  <span className="text-yellow-400 font-medium">Transaction Details</span>
+                </div>
+                <p className="text-yellow-300 text-sm">
+                  Check your wallet for transaction confirmations. All PyUSD transfers have been initiated.
+                </p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowExecutePlanModal(false);
+                    setSelectedPlanId(null);
+                  }}
+                  className="flex-1 outline-button"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExecutePlanModal(false);
+                    setSelectedPlanId(null);
+                    setActiveView('plans');
+                  }}
+                  className="flex-1 gradient-button"
+                >
+                  View All Plans
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Saved Modal */}
+      {showDraftSavedModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500 border-opacity-30">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Save className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Draft Saved!</h3>
+              <p className="text-purple-300 text-sm mb-6">
+                Your spending plan has been saved as a draft. You can review and approve it later.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowDraftSavedModal(false)}
+                  className="flex-1 outline-button"
+                >
+                  Continue Editing
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDraftSavedModal(false);
+                    setActiveView('plans');
+                  }}
+                  className="flex-1 gradient-button"
+                >
+                  Review Draft
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction History Section */}
+      {transactions.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <ExternalLink className="w-6 h-6 text-purple-400" />
+            <h3 className="text-xl font-semibold text-white">Recent Transactions</h3>
+          </div>
+          
+          <div className="card">
+            <div className="space-y-4">
+              {transactions.slice(0, 5).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-4 bg-purple-900 bg-opacity-20 rounded-lg border border-purple-500 border-opacity-20">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-white font-medium capitalize">{transaction.category}</span>
+                        <span className="text-green-400 text-sm">• {transaction.status}</span>
+                      </div>
+                      <p className="text-purple-300 text-sm">{transaction.description}</p>
+                      <p className="text-purple-400 text-xs">
+                        {new Date(transaction.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-green-400 font-bold">${transaction.amount.toLocaleString()}</span>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-purple-400 text-xs">
+                        {transaction.tx_hash.slice(0, 6)}...{transaction.tx_hash.slice(-4)}
+                      </span>
+                      <button className="text-purple-400 hover:text-purple-300">
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {transactions.length > 5 && (
+              <div className="text-center mt-4">
+                <button className="outline-button">
+                  View All Transactions ({transactions.length})
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AIAgentPage;
