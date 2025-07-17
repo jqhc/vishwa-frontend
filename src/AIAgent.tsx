@@ -713,4 +713,250 @@ const AIAgentPage: React.FC = () => {
             <button
               onClick={() => setActiveView('create')}
               className="gradient-button"
-            ></button>
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create New Plan
+            </button>
+          </div>
+          
+          {spendingPlans.length === 0 ? (
+            <div className="card text-center">
+              <div className="w-16 h-16 bg-purple-900 bg-opacity-30 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                <Eye className="w-8 h-8 text-purple-400" />
+              </div>
+              <h4 className="text-white font-semibold mb-2">No Plans Yet</h4>
+              <p className="text-purple-300 text-sm mb-4">
+                Create your first spending plan to get started
+              </p>
+              <button
+                onClick={() => setActiveView('create')}
+                className="gradient-button"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Create First Plan
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {spendingPlans.map((plan) => (
+                <div key={plan.id} className="card">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`${getStatusColor(plan.status)}`}>
+                        {getStatusIcon(plan.status)}
+                      </div>
+                      <div>
+                        <h4 className="text-white font-semibold">Plan #{plan.id.slice(0, 8)}</h4>
+                        <p className="text-purple-300 text-sm">
+                          Created {new Date(plan.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-green-400 font-bold text-lg">
+                        ${plan.amount.toLocaleString()}
+                      </span>
+                      <p className={`text-xs capitalize ${getStatusColor(plan.status)}`}>
+                        {plan.status}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-4">
+                    <h5 className="text-white font-medium">Allocations</h5>
+                    <div className="grid grid-cols-2 gap-2">
+                      {plan.allocations.slice(0, 4).map((allocation, index) => (
+                        <div key={index} className="bg-purple-900 bg-opacity-20 rounded-lg p-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-purple-300 text-sm capitalize">
+                              {allocation.category}
+                            </span>
+                            <span className="text-white font-medium text-sm">
+                              ${allocation.amount.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="w-full bg-purple-900 bg-opacity-30 rounded-full h-1 mt-1">
+                            <div 
+                              className="bg-gradient-to-r from-purple-500 to-violet-600 h-1 rounded-full"
+                              style={{ width: `${(allocation.amount / plan.amount) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {plan.allocations.length > 4 && (
+                      <p className="text-purple-300 text-sm">
+                        +{plan.allocations.length - 4} more allocations
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="bg-purple-900 bg-opacity-20 rounded-lg p-3 mb-4">
+                    <p className="text-purple-300 text-sm">
+                      {plan.explanation.length > 100 
+                        ? `${plan.explanation.substring(0, 100)}...` 
+                        : plan.explanation}
+                    </p>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    {plan.status === 'draft' && (
+                      <button
+                        onClick={() => handleApprovePlan(plan.id)}
+                        className="flex-1 bg-blue-600 bg-opacity-20 border border-blue-500 border-opacity-30 text-blue-400 px-4 py-2 rounded-lg hover:bg-blue-600 hover:bg-opacity-30 transition-colors text-sm"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2 inline" />
+                        Approve
+                      </button>
+                    )}
+                    {(plan.status === 'approved' || plan.status === 'draft') && (
+                      <button
+                        onClick={() => handleExecutePlan(plan.id)}
+                        disabled={isExecutingPlan}
+                        className="flex-1 gradient-button text-sm disabled:opacity-50"
+                      >
+                        <Play className="w-4 h-4 mr-2 inline" />
+                        Execute
+                      </button>
+                    )}
+                    {plan.status === 'executed' && (
+                      <button className="flex-1 bg-green-600 bg-opacity-20 border border-green-500 border-opacity-30 text-green-400 px-4 py-2 rounded-lg text-sm cursor-not-allowed">
+                        <CheckCircle className="w-4 h-4 mr-2 inline" />
+                        Executed
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modals */}
+      
+      {/* Wallet Connection Modal */}
+      {showWalletModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500 border-opacity-30">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white">Connect Wallet</h3>
+              <button
+                onClick={() => setShowWalletModal(false)}
+                className="text-purple-300 hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-purple-300 text-sm mb-4">
+              Enter your wallet address to execute spending plans
+            </p>
+            <input
+              type="text"
+              placeholder="0x..."
+              value={walletAddress}
+              onChange={(e) => setWalletAddress(e.target.value)}
+              className="input-field mb-4"
+            />
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowWalletModal(false)}
+                className="flex-1 outline-button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConnectWallet}
+                className="flex-1 gradient-button"
+              >
+                Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Plan Success Modal */}
+      {showCreatePlanModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500 border-opacity-30">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Plan Created Successfully!</h3>
+              <p className="text-purple-300 text-sm mb-6">
+                Your spending plan has been created and is ready for review
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowCreatePlanModal(false);
+                    setActiveView('plans');
+                  }}
+                  className="flex-1 outline-button"
+                >
+                  View Plans
+                </button>
+                <button
+                  onClick={() => setShowCreatePlanModal(false)}
+                  className="flex-1 gradient-button"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Optimization Modal */}
+      {showAIOptimizationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-lg w-full mx-4 border border-purple-500 border-opacity-30">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-violet-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">AI Optimization Complete!</h3>
+              <p className="text-purple-300 text-sm mb-6">
+                The AI has analyzed your requirements and created an optimized spending plan
+              </p>
+              <div className="bg-purple-900 bg-opacity-20 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-5 h-5 text-yellow-400" />
+                  <span className="text-yellow-400 font-medium">Optimization Highlights</span>
+                </div>
+                <ul className="text-purple-300 text-sm space-y-1">
+                  <li>• Balanced allocation across priority categories</li>
+                  <li>• Risk-adjusted reserve allocation</li>
+                  <li>• Operational efficiency optimization</li>
+                </ul>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowAIOptimizationModal(false);
+                    setActiveView('chat');
+                  }}
+                  className="flex-1 outline-button"
+                >
+                  View in Chat
+                </button>
+                <button
+                  onClick={() => setShowAIOptimizationModal(false)}
+                  className="flex-1 gradient-button"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Execute Plan Modal */}
+      {showExecutePlanModal && selectedPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-lg w-full mx-4 border border-purple-500 border-opacity-30">
+            <div className="text-c
