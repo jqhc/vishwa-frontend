@@ -1,92 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, User, Send, Plus, Eye, Play, CheckCircle, Clock, DollarSign, TrendingUp, Shield, Sparkles, RotateCcw, ExternalLink, Save, Zap, AlertCircle } from 'lucide-react';
-
-// API Configuration
-const API_BASE_URL = 'http://localhost:5000'; // Adjust this to your backend URL
-
-// API Service Functions
-const apiService = {
-  // Wallet connection
-  connectWallet: async (walletAddress: string) => {
-    const response = await fetch(`${API_BASE_URL}/connect-wallet`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ wallet_address: walletAddress }),
-    });
-    console.log(response);
-    return response.json();
-  },
-
-  getConnectedWallet: async () => {
-    const response = await fetch(`${API_BASE_URL}/get-wallet`);
-    console.log(response);
-    if (response.ok) {
-      return response.json();
-    }
-    return null;
-  },
-
-  // Spending plan operations
-  createSpendingPlan: async (planData: {
-    amount: number;
-    priorities: string[];
-    constraints?: Record<string, any>;
-    description?: string;
-  }) => {
-    const response = await fetch(`${API_BASE_URL}/create-plan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(planData),
-    });
-    console.log(response);
-    return response.json();
-  },
-
-  getSpendingPlans: async () => {
-    const response = await fetch(`${API_BASE_URL}/get-plans`);
-    console.log(response);
-    return response.json();
-  },
-
-  getSpendingPlan: async (planId: string) => {
-    const response = await fetch(`${API_BASE_URL}/get-plan/${planId}`);
-    console.log(response);
-    return response.json();
-  },
-
-  approveSpendingPlan: async (planId: string) => {
-    const response = await fetch(`${API_BASE_URL}/approve-plan/${planId}`, {
-      method: 'POST',
-    });
-    console.log(response);
-    return response.json();
-  },
-
-  executeSpendingPlan: async (planId: string) => {
-    const response = await fetch(`${API_BASE_URL}/execute-plan/${planId}`, {
-      method: 'POST',
-    });
-    console.log(response);
-    return response.json();
-  },
-
-  // Transaction operations
-  getTransactions: async () => {
-    const response = await fetch(`${API_BASE_URL}/get-transactions`);
-    console.log(response);
-    return response.json();
-  },
-
-  getTransaction: async (transactionId: string) => {
-    const response = await fetch(`${API_BASE_URL}/get-transaction/${transactionId}`);
-    console.log(response);
-    return response.json();
-  },
-};
+import { createSpendingPlan, approveSpendingPlan, executeSpendingPlan, getSpendingPlans, getTransactions, getConnectedWallet, connectWallet } from './APIService';
 
 // Updated interfaces to match backend
 interface SpendingPlan {
@@ -176,19 +90,19 @@ const AIAgentPage: React.FC = () => {
   const loadInitialData = async () => {
     try {
       // Load connected wallet
-      const wallet = await apiService.getConnectedWallet();
+      const wallet = await getConnectedWallet();
       if (wallet?.wallet_address) {
         setConnectedWallet(wallet.wallet_address);
       }
 
       // Load spending plans
-      const plans = await apiService.getSpendingPlans();
+      const plans = await getSpendingPlans();
       if (Array.isArray(plans)) {
         setSpendingPlans(plans);
       }
 
       // Load transactions
-      const txs = await apiService.getTransactions();
+      const txs = await getTransactions();
       if (Array.isArray(txs)) {
         setTransactions(txs);
       }
@@ -199,15 +113,16 @@ const AIAgentPage: React.FC = () => {
 
   const handleConnectWallet = async () => {
     if (!walletAddress.trim()) {
-      console.log("No wallet address provided");
+      alert("Please enter a wallet address");
       return;
     }
     
     try {
-      await apiService.connectWallet(walletAddress);
+      const result = await connectWallet(walletAddress);
+      console.log(result);
       setConnectedWallet(walletAddress);
       setShowWalletModal(false);
-      setWalletAddress('');
+      // setWalletAddress('');
       
       // Add success message to chat
       const successMessage: ChatMessage = {
@@ -219,6 +134,7 @@ const AIAgentPage: React.FC = () => {
       setMessages(prev => [...prev, successMessage]);
     } catch (error) {
       console.error('Error connecting wallet:', error);
+      alert('Failed to connect wallet. Please try again.');
     }
   };
 
@@ -289,7 +205,7 @@ const AIAgentPage: React.FC = () => {
         description: `AI-generated plan from chat: ${currentMessage}`
       };
       
-      const newPlan = await apiService.createSpendingPlan(planData);
+      const newPlan = await createSpendingPlan(planData);
       
       if (newPlan.id) {
         setSpendingPlans(prev => [...prev, newPlan]);
@@ -327,7 +243,7 @@ const AIAgentPage: React.FC = () => {
         description: planForm.description
       };
       
-      const newPlan = await apiService.createSpendingPlan(planData);
+      const newPlan = await createSpendingPlan(planData);
       
       if (newPlan.id) {
         setSpendingPlans(prev => [...prev, newPlan]);
@@ -347,7 +263,7 @@ const AIAgentPage: React.FC = () => {
 
   const handleApprovePlan = async (planId: string) => {
     try {
-      const approvedPlan = await apiService.approveSpendingPlan(planId);
+      const approvedPlan = await approveSpendingPlan(planId);
       setSpendingPlans(prev => prev.map(p => p.id === planId ? approvedPlan : p));
     } catch (error) {
       console.error('Error approving plan:', error);
@@ -371,7 +287,7 @@ const AIAgentPage: React.FC = () => {
       }
       
       // Execute the plan
-      const result = await apiService.executeSpendingPlan(planId);
+      const result = await executeSpendingPlan(planId);
       
       if (result.transactions) {
         // Update transactions
@@ -425,7 +341,7 @@ const AIAgentPage: React.FC = () => {
         </p>
         
         {/* Wallet Connection Status */}
-        <div className="mt-4 flex items-center justify-center space-x-4">
+        {/* <div className="mt-4 flex items-center justify-center space-x-4">
           {connectedWallet ? (
             <div className="flex items-center space-x-2 bg-green-900 bg-opacity-30 px-4 py-2 rounded-lg border border-green-500 border-opacity-30">
               <div className="w-3 h-3 bg-green-400 rounded-full"></div>
@@ -434,12 +350,12 @@ const AIAgentPage: React.FC = () => {
           ) : (
             <button
               onClick={() => setShowWalletModal(true)}
-              className="bg-yellow-900 bg-opacity-30 px-4 py-2 rounded-lg border border-yellow-500 border-opacity-30 text-yellow-400 text-sm hover:bg-yellow-600 hover:bg-opacity-20 transition-colors"
+              className="bg-yellow-900 bg-opacity-30 px-4 py-2 rounded-lg border border-yellow-500 border-opacity-30 text-yellow-400 text-sm hover:bg-yellow-600 hover:bg-opacity-20 transition-colors cursor-pointer"
             >
               Connect Wallet
             </button>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* View Toggle */}
@@ -854,7 +770,7 @@ const AIAgentPage: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-white">Connect Wallet</h3>
               <button
-                onClick={() => setShowWalletModal(false)}
+                onClick={() => setShowWalletModal(true)}
                 className="text-purple-300 hover:text-white"
               >
                 ×
