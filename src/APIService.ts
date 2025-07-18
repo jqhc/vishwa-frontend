@@ -27,7 +27,7 @@ export const getConnectedWallet = async () => {
 // Spending plan operations
 export const createSpendingPlan = async (planData: {
   amount: number;
-  priorities: string[];
+  priorities: Record<string, string[]>;
   constraints?: Record<string, any>;
   description?: string;
 }) => {
