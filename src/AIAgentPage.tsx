@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, User, Send, Plus, Eye, Play, CheckCircle, Clock, DollarSign, TrendingUp, Shield, Sparkles, RotateCcw, ExternalLink, Save, Zap, AlertCircle } from 'lucide-react';
 import { createSpendingPlan, approveSpendingPlan, executeSpendingPlan, getSpendingPlans, getTransactions, getConnectedWallet, connectWallet } from './APIService';
+import KitePassDialog from "./components/ui/KitePassDialog";
+import KiteLogo from "./assets/KiteLogo.png";
 
 // Updated interfaces to match backend
 interface SpendingPlan {
@@ -93,17 +95,31 @@ const AIAgentPage: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      // Load connected wallet
-      // const wallet = await getConnectedWallet();
-      // if (wallet?.wallet_address) {
-      //   setConnectedWallet(wallet.wallet_address);
-      // }
-
       // Load spending plans
       const plans = await getSpendingPlans();
-      if (Array.isArray(plans)) {
-        setSpendingPlans(plans);
-      }
+      let plansToSet = Array.isArray(plans) ? plans : [];
+      // Always add a dummy example plan for UI testing
+      plansToSet.push({
+        id: 'plan-q2-2024',
+        name: 'Q2 Mining Operations',
+        amount: 10000,
+        status: 'draft' as const,
+        created_at: new Date().toISOString(),
+        allocations: [
+          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.' },
+          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.' },
+          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.' },
+          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.' }
+        ],
+        total_allocated: 10000,
+        explanation: 'AI-optimized allocation for Q2 2024: Prioritizes equipment upgrades to maximize hash rate, ensures operational stability with dedicated utility and wage budgets, and maintains a reserve for risk mitigation.',
+        priorities: { high: ['equipment'], medium: ['utilities'], low: ['reserve', 'wages'] },
+        constraints: {},
+        approved_at: undefined,
+        execution_date: undefined,
+      });
+      console.log('Spending plans after loading:', plansToSet);
+      setSpendingPlans(plansToSet);
 
       // Load transactions
       const txs = await getTransactions();
@@ -111,7 +127,29 @@ const AIAgentPage: React.FC = () => {
         setTransactions(txs);
       }
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      // Fallback: show example plan even if API fails
+      const examplePlan = {
+        id: 'plan-q2-2024',
+        name: 'Q2 Mining Operations',
+        amount: 10000,
+        status: 'draft' as const,
+        created_at: new Date().toISOString(),
+        allocations: [
+          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.' },
+          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.' },
+          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.' },
+          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.' }
+        ],
+        total_allocated: 10000,
+        explanation: 'AI-optimized allocation for Q2 2024: Prioritizes equipment upgrades to maximize hash rate, ensures operational stability with dedicated utility and wage budgets, and maintains a reserve for risk mitigation.',
+        priorities: { high: ['equipment'], medium: ['utilities'], low: ['reserve', 'wages'] },
+        constraints: {},
+        approved_at: undefined,
+        execution_date: undefined,
+      };
+      setSpendingPlans([examplePlan]);
+      console.log('API failed, showing only example plan');
+      // Optionally, setTransactions([]) or handle transaction fallback
     }
   };
 
@@ -753,6 +791,43 @@ const AIAgentPage: React.FC = () => {
                         Executed
                       </button>
                     )}
+                    {/* KitePass Dialog Button */}
+                    <KitePassDialog 
+                      kitePass={{
+                        passId: 'kitepass-123',
+                        monthlyLimit: '10000',
+                        usedThisMonth: '2962.67',
+                        createdAt: new Date().toISOString(),
+                      }}
+                      transactions={[
+                        {
+                          id: 'tx-1',
+                          amount: 1200,
+                          description: 'Maintenance service',
+                          status: 'pending',
+                          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                        },
+                        {
+                          id: 'tx-2',
+                          amount: 2500,
+                          description: 'Mining Equipment',
+                          status: 'completed',
+                          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+                        },
+                        {
+                          id: 'tx-3',
+                          amount: 462.67,
+                          description: 'Electricity Bill',
+                          status: 'completed',
+                          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+                        },
+                      ]}
+                    >
+                      <button className="flex-1 flex items-center justify-center space-x-2 bg-transparent hover:bg-purple-900/10 border border-purple-400/30 rounded-lg py-2 px-3 transition-colors">
+                        <img src={KiteLogo} alt="Kite Logo" className="w-6 h-6" style={{ background: 'transparent' }} />
+                        <span>Protected by Kite</span>
+                      </button>
+                    </KitePassDialog>
                   </div>
                 </div>
               );})}
