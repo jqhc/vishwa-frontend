@@ -409,14 +409,19 @@ const AIAgentPage: React.FC = () => {
             </div>
             
             <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Ask about spending optimization..."
+              <textarea
+                rows={1}
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                className="flex-1 input-field"
-                disabled={isLoading || isCreatingPlan}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                placeholder="Ask about spending optimization..."
+                className="flex-1 input-field resize-none overflow-auto max-h-40 min-h-[40px] py-2 px-3 rounded-lg bg-purple-950 text-white border border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm leading-relaxed"
+                style={{ lineHeight: '1.5rem' }}
               />
               <button
                 onClick={handleSendMessage}
@@ -655,7 +660,7 @@ const AIAgentPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {spendingPlans.map((plan) => {
+              {spendingPlans.slice().reverse().map((plan) => {
                 const isExpanded = expandedPlans[plan.id];
                 const allocationsToShow = isExpanded ? plan.allocations : plan.allocations.slice(0, 4);
                 return (
