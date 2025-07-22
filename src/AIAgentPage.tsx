@@ -18,6 +18,7 @@ interface SpendingPlan {
     is_executed?: boolean;
     execution_date?: string;
     transaction_id?: string;
+    chain?: string
   }>;
   total_allocated: number;
   explanation: string;
@@ -106,10 +107,10 @@ const AIAgentPage: React.FC = () => {
         status: 'draft' as const,
         created_at: new Date().toISOString(),
         allocations: [
-          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.' },
-          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.' },
-          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.' },
-          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.' }
+          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.', chain: "SUI" },
+          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.', chain: "BSC" },
+          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.', chain: "Base" },
+          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.', chain: "Self-custody" }
         ],
         total_allocated: 10000,
         explanation: 'AI-optimized allocation for Q2 2024: Prioritizes equipment upgrades to maximize hash rate, ensures operational stability with dedicated utility and wage budgets, and maintains a reserve for risk mitigation.',
@@ -135,10 +136,10 @@ const AIAgentPage: React.FC = () => {
         status: 'draft' as const,
         created_at: new Date().toISOString(),
         allocations: [
-          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.' },
-          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.' },
-          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.' },
-          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.' }
+          { category: 'equipment', amount: 5000, description: 'Procurement of new mining rigs and hardware upgrades.', chain: "SUI" },
+          { category: 'utilities', amount: 2000, description: 'Electricity and cooling costs for 24/7 operation.', chain: "BSC" },
+          { category: 'wages', amount: 2000, description: 'Monthly salaries for on-site staff and technicians.', chain: "Base" },
+          { category: 'reserve', amount: 1000, description: 'Contingency fund for unexpected expenses.', chain: "Self-custody" }
         ],
         total_allocated: 10000,
         explanation: 'AI-optimized allocation for Q2 2024: Prioritizes equipment upgrades to maximize hash rate, ensures operational stability with dedicated utility and wage budgets, and maintains a reserve for risk mitigation.',
@@ -519,16 +520,39 @@ const AIAgentPage: React.FC = () => {
                 <div className="space-y-3">
                   <h4 className="text-white font-semibold">Allocation Breakdown</h4>
                   {optimizedPlan.allocations.map((allocation, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-purple-900 bg-opacity-30 rounded-lg border border-purple-500 border-opacity-20">
-                      <div>
+                    <div
+                      key={index}
+                      className={`flex justify-between items-start p-3 rounded-lg border ${
+                        allocation.chain === 'Self-custody'
+                          ? 'bg-green-900/30 border-green-500/30'
+                          : 'bg-purple-700 bg-opacity-30 border-purple-500 border-opacity-20'
+                      }`}
+                    >
+                      {/* Left: Category + Description */}
+                      <div className="flex flex-col">
                         <span className="text-white font-medium capitalize">{allocation.category}</span>
-                        <p className="text-purple-300 text-sm">{allocation.description}</p>
+                        <p className={`${allocation.chain === 'Self-custody' ? "text-green-300/80 text-sm" : "text-purple-200 text-sm"}`}>{allocation.description}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="text-green-400 font-semibold">${allocation.amount.toLocaleString()}</span>
-                        <p className="text-purple-300 text-sm">{((allocation.amount / optimizedPlan.amount) * 100).toFixed(1)}%</p>
+
+                      {/* Right: Amount + Chain */}
+                      <div className="flex flex-col items-end">
+                        <span className="text-white font-medium">${allocation.amount.toLocaleString()}</span>
+                        {allocation.chain && (
+                          <span
+                            className={`mt-1 px-2 py-0.5 text-xs rounded-full ${
+                              allocation.chain === 'Self-custody'
+                                ? 'bg-green-800/50 text-green-200'
+                                : 'bg-purple-800 text-purple-200'
+                            }`}
+                          >
+                            {allocation.chain === 'Self-custody'
+                              ? 'Self-Custody'
+                              : `USDC on ${allocation.chain}`}
+                          </span>
+                        )}
                       </div>
                     </div>
+
                   ))}
                 </div>
                 
