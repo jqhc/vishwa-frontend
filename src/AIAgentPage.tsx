@@ -3,9 +3,13 @@ import { Bot, User, Send, Plus, Eye, Play, CheckCircle, Clock, DollarSign, Trend
 import { createSpendingPlan, approveSpendingPlan, executeSpendingPlan, getSpendingPlans, getTransactions, getConnectedWallet, connectWallet } from './APIService';
 import KitePassDialog from "./components/ui/KitePassDialog";
 import KiteLogo from "./assets/KiteLogo.png";
+import ChatSection from './components/ai-agent/ChatSection';
+import CreatePlanForm from './components/ai-agent/CreatePlanForm';
+import PlansList from './components/ai-agent/PlansList';
+import { CreatePlanSuccessModal, AIOptimizationModal, ExecutePlanModal, DraftSavedModal } from './components/ai-agent/Modals';
 
 // Updated interfaces to match backend
-interface SpendingPlan {
+export interface SpendingPlan {
   id: string;
   name: string;
   amount: number;
@@ -28,14 +32,14 @@ interface SpendingPlan {
   execution_date?: string;
 }
 
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   type: 'user' | 'ai';
   content: string;
   timestamp: string;
 }
 
-interface Transaction {
+export interface Transaction {
   id: string;
   plan_id: string;
   amount: number;
@@ -47,6 +51,14 @@ interface Transaction {
   status: string;
   tx_hash: string;
   error_message?: string;
+}
+
+export interface PlanFormState {
+  name: string;
+  amount: number;
+  priorities: Record<string, string[]>;
+  description: string;
+  constraints: Record<string, any>;
 }
 
 const AIAgentPage: React.FC = () => {
@@ -69,7 +81,7 @@ const AIAgentPage: React.FC = () => {
   const [isCreatingPlan, setIsCreatingPlan] = useState(false);
   const [isExecutingPlan, setIsExecutingPlan] = useState(false);
   
-  const [planForm, setPlanForm] = useState({
+  const [planForm, setPlanForm] = useState<PlanFormState>({
     name: 'Q4 Mining Strategy',
     amount: 50000,
     priorities: {
@@ -172,7 +184,7 @@ const AIAgentPage: React.FC = () => {
         execution_date: undefined,
       };
       setSpendingPlans([examplePlan]);
-      setSpendingPlans([]);
+      // setSpendingPlans([]);
       console.log('API failed, showing only example plan');
       // Optionally, setTransactions([]) or handle transaction fallback
     }
@@ -360,7 +372,7 @@ const AIAgentPage: React.FC = () => {
   };
 
   const optimizedPlan = spendingPlans[spendingPlans.length - 1];
-  const selectedPlan = selectedPlanId ? spendingPlans.find(p => p.id === selectedPlanId) : null;
+  const selectedPlan = selectedPlanId ? (spendingPlans.find(p => p.id === selectedPlanId) ?? null) : null;
 
   return (
     <div className="space-y-8">
@@ -425,654 +437,86 @@ const AIAgentPage: React.FC = () => {
 
       {/* Chat View */}
       {activeView === 'chat' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Chat Interface */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">AI Strategy Agent</h3>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                <span className="text-green-400 text-sm">Online</span>
-              </div>
-            </div>
-            
-            <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-              {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex items-start space-x-3 max-w-sm ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      message.type === 'user' 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600' 
-                        : 'bg-gradient-to-r from-purple-500 to-violet-600'
-                    }`}>
-                      {message.type === 'user' ? <User className="w-4 h-4 text-white" /> : <Bot className="w-4 h-4 text-white" />}
-                    </div>
-                    <div className={message.type === 'user' ? 'user-message' : 'ai-message'}>
-                      <p className="text-sm">{message.content}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(isLoading || isCreatingPlan) && (
-                <div className="flex justify-start">
-                  <div className="flex items-start space-x-3 max-w-sm">
-                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-violet-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="ai-message">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-100"></div>
-                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse delay-200"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex space-x-2">
-              <textarea
-                rows={1}
-                value={currentMessage}
-                onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder="Ask about spending optimization..."
-                className="flex-1 input-field resize-none overflow-auto max-h-40 min-h-[40px] py-2 px-3 rounded-lg bg-purple-950 text-white border border-purple-500/30 focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm leading-relaxed"
-                style={{ lineHeight: '1.5rem' }}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={isLoading || isCreatingPlan}
-                className="gradient-button px-4 disabled:opacity-50"
-              >
-                <Send className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* AI Spending Plan Results */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">AI Spending Plan Results</h3>
-            </div>
-            
-            {!optimizedPlan && (
-              <div className="text-center p-4">
-                <div className="w-16 h-16 bg-purple-900 bg-opacity-30 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <Bot className="w-8 h-8 text-purple-400" />
-                </div>
-                <p className="text-purple-300 text-sm">
-                  Share your budget and priorities to get AI-powered spending recommendations
-                </p>
-              </div>
-            )}
-            
-            {optimizedPlan && (
-              <div className="space-y-6">
-                <div className="flex items-center space-x-2 text-green-400">
-                  <CheckCircle className="w-5 h-5" />
-                  <span className="font-medium">Strategy Analysis Complete</span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-br from-green-900/40 to-green-800/20 rounded-xl p-4 border border-green-500/30">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <DollarSign className="w-5 h-5 text-green-400" />
-                      <span className="text-green-300 font-medium text-sm">Budget</span>
-                    </div>
-                    <p className="text-2xl font-bold text-white">${optimizedPlan.amount.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-yellow-900/40 to-yellow-800/20 rounded-xl p-4 border border-yellow-500/30">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <TrendingUp className="w-5 h-5 text-yellow-400" />
-                      <span className="text-yellow-300 font-medium text-sm">Allocated</span>
-                    </div>
-                    <p className="text-2xl font-bold text-white">${optimizedPlan.total_allocated.toLocaleString()}</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-blue-900/40 to-blue-800/20 rounded-xl p-4 border border-blue-500/30">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Shield className="w-5 h-5 text-blue-400" />
-                      <span className="text-blue-300 font-medium text-sm">Status</span>
-                    </div>
-                    <p className="text-2xl font-bold text-white capitalize">{optimizedPlan.status}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <h4 className="text-white font-semibold">Allocation Breakdown</h4>
-                  {optimizedPlan.allocations.map((allocation, index) => (
-                    <div
-                      key={index}
-                      className={`flex justify-between items-start p-3 rounded-lg border ${
-                        allocation.chain === 'Self-custody'
-                          ? 'bg-green-900/30 border-green-500/30'
-                          : 'bg-purple-700 bg-opacity-30 border-purple-500 border-opacity-20'
-                      }`}
-                    >
-                      {/* Left: Category + Description */}
-                      <div className="flex flex-col">
-                        <span className="text-white font-medium capitalize">{allocation.category}</span>
-                        <p className={`${allocation.chain === 'Self-custody' ? "text-green-300/80 text-sm" : "text-purple-200 text-sm"}`}>{allocation.description}</p>
-                      </div>
-
-                      {/* Right: Amount + Chain */}
-                      <div className="flex flex-col items-end">
-                        <span className="text-white font-medium">${allocation.amount.toLocaleString()}</span>
-                        {allocation.chain && (
-                          <span
-                            className={`mt-1 px-2 py-0.5 text-xs rounded-full ${
-                              allocation.chain === 'Self-custody'
-                                ? 'bg-green-800/50 text-green-200'
-                                : 'bg-purple-800 text-purple-200'
-                            }`}
-                          >
-                            {allocation.chain === 'Self-custody'
-                              ? 'Self-Custody'
-                              : `USDC on ${allocation.chain}`}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                  ))}
-                </div>
-                
-                <div className="bg-purple-900 bg-opacity-20 rounded-lg p-4">
-                  <h4 className="text-white font-semibold mb-2">AI Explanation</h4>
-                  <p className="text-purple-300 text-sm">{optimizedPlan.explanation}</p>
-                </div>
-                
-                <div className="flex space-x-3">
-                  {optimizedPlan.status !== 'executed' && (
-                    <button
-                      onClick={() => handleExecutePlan(optimizedPlan.id)}
-                      disabled={isExecutingPlan}
-                      className="flex-1 gradient-button disabled:opacity-50"
-                    >
-                      <Play className="w-5 h-5 mr-2" />
-                      {isExecutingPlan ? 'Executing...' : 'Execute Strategy'}
-                    </button>
-                  )}
-                  <button 
-                    onClick={() => loadInitialData()}
-                    className="outline-button"
-                  >
-                    <RotateCcw className="w-5 h-5 mr-2" />
-                    Refresh
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <ChatSection
+          messages={messages}
+          currentMessage={currentMessage}
+          setCurrentMessage={setCurrentMessage}
+          handleSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          isCreatingPlan={isCreatingPlan}
+          optimizedPlan={optimizedPlan}
+          isExecutingPlan={isExecutingPlan}
+          handleExecutePlan={handleExecutePlan}
+          loadInitialData={loadInitialData}
+        />
       )}
 
       {/* Create New Plan View */}
       {activeView === 'create' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="card">
-            <h3 className="text-xl font-semibold text-white mb-6">Create New Spending Plan</h3>
-
-            {/* Plan Name & Budget */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-white font-medium mb-2">Plan Name</label>
-                <input
-                  type="text"
-                  value={planForm.name}
-                  onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
-                  className="input-field"
-                  placeholder="e.g. Q4 Mining Strategy"
-                />
-              </div>
-              <div>
-                <label className="block text-white font-medium mb-2">Budget Amount (PyUSD)</label>
-                <input
-                  type="number"
-                  value={planForm.amount}
-                  onChange={(e) => setPlanForm({ ...planForm, amount: Number(e.target.value) })}
-                  className="input-field"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-            {/* Plan Description */}
-            <div className="mb-6">
-              <label className="block text-white font-medium mb-2">Plan Description</label>
-              <input
-                type="text"
-                value={planForm.description}
-                onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
-                className="input-field"
-                placeholder="Optional description"
-              />
-            </div>
-
-            {/* Priority Categories with Dropdowns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              {['equipment', 'utilities', 'wages', 'reserve', 'maintenance', 'taxes', 'insurance'].map((category) => {
-                const currentLevel = Object.entries(planForm.priorities).find(([_, cats]) => cats.includes(category))?.[0] || 'none';
-
-                return (
-                  <div
-                    key={category}
-                    className="bg-gradient-to-br from-purple-800/30 to-purple-900/20 p-3 rounded-xl border border-purple-500/20 shadow-sm"
-                  >
-                    <label className="block text-sm font-medium text-white mb-1 capitalize">
-                      {category}
-                    </label>
-                    <select
-                      value={currentLevel}
-                      onChange={(e) => {
-                        const newLevel = e.target.value;
-                        const updated: Record<string, string[]> = { high: [], medium: [], low: [] };
-                        Object.entries(planForm.priorities).forEach(([level, list]) => {
-                          updated[level as 'high' | 'medium' | 'low'] = list.filter(cat => cat !== category);
-                        });
-                        if (newLevel !== 'none') {
-                          updated[newLevel as 'high' | 'medium' | 'low'].push(category);
-                        }
-                        setPlanForm({ ...planForm, priorities: updated });
-                      }}
-                      className="w-full mt-1 px-3 py-2 bg-purple-950 text-white text-sm rounded-lg border border-purple-500/40 shadow-inner focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all"
-                    >
-                      <option value="none">None</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-                );
-              })}
-            </div>
-
-
-
-            {/* Create Button */}
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={handleCreatePlan}
-                disabled={isCreatingPlan}
-                className="gradient-button disabled:opacity-50"
-              >
-                <Zap className="w-5 h-5 mr-2" />
-                {isCreatingPlan ? 'Creating...' : 'Optimize with AI'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreatePlanForm
+          planForm={planForm}
+          setPlanForm={setPlanForm}
+          handleCreatePlan={handleCreatePlan}
+          isCreatingPlan={isCreatingPlan}
+        />
       )}
 
 
       {/* Existing Plans View */}
       {activeView === 'plans' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-white">Existing Plans ({spendingPlans.length})</h3>
-            <button
-              onClick={() => setActiveView('create')}
-              className="gradient-button"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Create New Plan
-            </button>
-          </div>
-          
-          {spendingPlans.length === 0 ? (
-            <div className="card text-center">
-              <div className="w-16 h-16 bg-purple-900 bg-opacity-30 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                <Eye className="w-8 h-8 text-purple-400" />
-              </div>
-              <h4 className="text-white font-semibold mb-2">No Plans Yet</h4>
-              <p className="text-purple-300 text-sm mb-4">
-                Create your first spending plan to get started
-              </p>
-              <button
-                onClick={() => setActiveView('create')}
-                className="gradient-button"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Create First Plan
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {spendingPlans.slice().reverse().map((plan) => {
-                const isExpanded = expandedPlans[plan.id];
-                const allocationsToShow = isExpanded ? plan.allocations : plan.allocations.slice(0, 4);
-                return (
-                  <div key={plan.id} className="card">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`${getStatusColor(plan.status)}`}>
-                          {getStatusIcon(plan.status)}
-                      </div>
-                      <div>
-                        <h4 className="text-white font-semibold">{plan.name}</h4>
-                        <p className="text-purple-300 text-sm">
-                          Created {new Date(plan.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-green-400 font-bold text-lg">
-                        ${plan.amount.toLocaleString()}
-                      </span>
-                      <p className={`text-xs capitalize ${getStatusColor(plan.status)}`}>
-                        {plan.status}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3 mb-4">
-                    <h5 className="text-white font-medium">Allocations</h5>
-                    <div className="grid grid-cols-2 gap-2">
-                      {allocationsToShow.map((allocation, index) => (
-                        <div key={index} className="bg-purple-900 bg-opacity-20 rounded-lg p-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-purple-300 text-sm capitalize">
-                              {allocation.category}
-                            </span>
-                            <span className="text-white font-medium text-sm">
-                              ${allocation.amount.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="w-full bg-purple-900 bg-opacity-30 rounded-full h-1 mt-1">
-                            <div
-                              className="bg-gradient-to-r from-purple-500 to-violet-600 h-1 rounded-full"
-                              style={{ width: `${(allocation.amount / plan.amount) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {plan.allocations.length > 4 && (
-                      <button
-                        onClick={() => setExpandedPlans(prev => ({
-                          ...prev,
-                          [plan.id]: !prev[plan.id]
-                        }))}
-                        className="text-purple-300 text-sm mt-2 hover:underline"
-                      >
-                        {isExpanded
-                          ? 'Show Less'
-                          : `+${plan.allocations.length - 4} more allocations`}
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="bg-purple-900 bg-opacity-20 rounded-lg p-3 mb-4">
-                    <p className="text-purple-300 text-sm">
-                      {plan.explanation.length > 100 
-                        ? `${plan.explanation.substring(0, 100)}...` 
-                        : plan.explanation}
-                    </p>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    {plan.status === 'draft' && (
-                      <button
-                        onClick={() => handleApprovePlan(plan.id)}
-                        className="flex-1 bg-blue-600 bg-opacity-20 border border-blue-500 border-opacity-30 text-blue-400 px-4 py-2 rounded-lg hover:bg-blue-600 hover:bg-opacity-30 transition-colors text-sm"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2 inline" />
-                        Approve
-                      </button>
-                    )}
-                    {(plan.status === 'approved' || plan.status === 'draft') && (
-                      <button
-                        onClick={() => handleExecutePlan(plan.id)}
-                        disabled={isExecutingPlan}
-                        className="flex-1 gradient-button text-sm disabled:opacity-50"
-                      >
-                        <Play className="w-4 h-4 mr-2 inline" />
-                        Execute
-                      </button>
-                    )}
-                    {plan.status === 'executed' && (
-                      <button className="flex-1 bg-green-600 bg-opacity-20 border border-green-500 border-opacity-30 text-green-400 px-4 py-2 rounded-lg text-sm cursor-not-allowed">
-                        <CheckCircle className="w-4 h-4 mr-2 inline" />
-                        Executed
-                      </button>
-                    )}
-                    {/* KitePass Dialog Button */}
-                    <KitePassDialog 
-                      kitePass={{
-                        passId: 'kitepass-123',
-                        monthlyLimit: '10000',
-                        usedThisMonth: '2962.67',
-                        createdAt: new Date().toISOString(),
-                      }}
-                      transactions={[
-                        {
-                          id: 'tx-1',
-                          amount: 1200,
-                          description: 'Maintenance service',
-                          status: 'pending',
-                          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-                        },
-                        {
-                          id: 'tx-2',
-                          amount: 2500,
-                          description: 'Mining Equipment',
-                          status: 'completed',
-                          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-                        },
-                        {
-                          id: 'tx-3',
-                          amount: 462.67,
-                          description: 'Electricity Bill',
-                          status: 'completed',
-                          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-                        },
-                      ]}
-                    >
-                      <button className="flex-1 flex items-center justify-center space-x-2 bg-transparent hover:bg-purple-900/10 border border-purple-400/30 rounded-lg py-2 px-3 transition-colors">
-                        <img src={KiteLogo} alt="Kite Logo" className="w-6 h-6" style={{ background: 'transparent' }} />
-                        <span>Protected by Kite</span>
-                      </button>
-                    </KitePassDialog>
-                  </div>
-                </div>
-              );})}
-            </div>
-          )}
-        </div>
+        <PlansList
+          plans={spendingPlans}
+          expandedPlans={expandedPlans}
+          onToggleExpand={(id) => setExpandedPlans(prev => ({ ...prev, [id]: !prev[id] }))}
+          onApprove={handleApprovePlan}
+          onExecute={handleExecutePlan}
+          isExecuting={isExecutingPlan}
+          getStatusColor={getStatusColor}
+          getStatusIcon={getStatusIcon}
+          onCreateNew={() => setActiveView('create')}
+        />
       )}
 
-      {/* Modals */}
+      <CreatePlanSuccessModal
+        open={showCreatePlanModal}
+        onClose={() => setShowCreatePlanModal(false)}
+        onViewPlans={() => {
+          setShowCreatePlanModal(false);
+          setActiveView('plans');
+        }}
+      />
 
-      {/* Create Plan Success Modal */}
-      {showCreatePlanModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500 border-opacity-30">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Plan Created Successfully!</h3>
-              <p className="text-purple-300 text-sm mb-6">
-                Your spending plan has been created and is ready for review
-              </p>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowCreatePlanModal(false);
-                    setActiveView('plans');
-                  }}
-                  className="flex-1 outline-button"
-                >
-                  View Plans
-                </button>
-                <button
-                  onClick={() => setShowCreatePlanModal(false)}
-                  className="flex-1 gradient-button"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AIOptimizationModal
+        open={showAIOptimizationModal}
+        onClose={() => setShowAIOptimizationModal(false)}
+        onViewChat={() => {
+          setShowAIOptimizationModal(false);
+          setActiveView('chat');
+        }}
+      />
 
-      {/* AI Optimization Modal */}
-      {showAIOptimizationModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-lg w-full mx-4 border border-purple-500 border-opacity-30">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-violet-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">AI Optimization Complete!</h3>
-              <p className="text-purple-300 text-sm mb-6">
-                The AI has analyzed your requirements and created an optimized spending plan
-              </p>
-              <div className="bg-purple-900 bg-opacity-20 rounded-lg p-4 mb-6">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Zap className="w-5 h-5 text-yellow-400" />
-                  <span className="text-yellow-400 font-medium">Optimization Highlights</span>
-                </div>
-                <ul className="text-purple-300 text-sm space-y-1">
-                  <li>• Balanced allocation across priority categories</li>
-                  <li>• Risk-adjusted reserve allocation</li>
-                  <li>• Operational efficiency optimization</li>
-                </ul>
-              </div>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowAIOptimizationModal(false);
-                    setActiveView('chat');
-                  }}
-                  className="flex-1 outline-button"
-                >
-                  View in Chat
-                </button>
-                <button
-                  onClick={() => setShowAIOptimizationModal(false)}
-                  className="flex-1 gradient-button"
-                >
-                  Continue
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExecutePlanModal
+        open={showExecutePlanModal}
+        plan={selectedPlan}
+        onClose={() => {
+          setShowExecutePlanModal(false);
+          setSelectedPlanId(null);
+        }}
+        onViewAllPlans={() => {
+          setShowExecutePlanModal(false);
+          setSelectedPlanId(null);
+          setActiveView('plans');
+        }}
+      />
 
-      {/* Execute Plan Modal */}
-      {showExecutePlanModal && selectedPlan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-lg w-full mx-4 border border-purple-500 border-opacity-30">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Plan Executed Successfully!</h3>
-              <p className="text-purple-300 text-sm mb-4">
-                Your spending plan has been executed and all transactions have been processed
-              </p>
-              
-              <div className="bg-purple-900 bg-opacity-20 rounded-lg p-4 mb-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <DollarSign className="w-5 h-5 text-green-400" />
-                  <span className="text-green-400 font-medium">Execution Summary</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-purple-300 text-sm">Total Amount:</span>
-                    <span className="text-white font-medium">${selectedPlan.amount.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-300 text-sm">Transactions:</span>
-                    <span className="text-white font-medium">{selectedPlan.allocations.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-300 text-sm">Status:</span>
-                    <span className="text-green-400 font-medium">Completed</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-yellow-900 bg-opacity-20 rounded-lg p-4 mb-6 border border-yellow-500 border-opacity-30">
-                <div className="flex items-center space-x-2 mb-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-400" />
-                  <span className="text-yellow-400 font-medium">Transaction Details</span>
-                </div>
-                <p className="text-yellow-300 text-sm">
-                  Check your wallet for transaction confirmations. All PyUSD transfers have been initiated.
-                </p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowExecutePlanModal(false);
-                    setSelectedPlanId(null);
-                  }}
-                  className="flex-1 outline-button"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setShowExecutePlanModal(false);
-                    setSelectedPlanId(null);
-                    setActiveView('plans');
-                  }}
-                  className="flex-1 gradient-button"
-                >
-                  View All Plans
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Draft Saved Modal */}
-      {showDraftSavedModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gradient-to-br from-purple-900 to-black rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500 border-opacity-30">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Save className="w-8 h-8 text-blue-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Draft Saved!</h3>
-              <p className="text-purple-300 text-sm mb-6">
-                Your spending plan has been saved as a draft. You can review and approve it later.
-              </p>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowDraftSavedModal(false)}
-                  className="flex-1 outline-button"
-                >
-                  Continue Editing
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDraftSavedModal(false);
-                    setActiveView('plans');
-                  }}
-                  className="flex-1 gradient-button"
-                >
-                  Review Draft
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DraftSavedModal
+        open={showDraftSavedModal}
+        onClose={() => setShowDraftSavedModal(false)}
+        onReview={() => {
+          setShowDraftSavedModal(false);
+          setActiveView('plans');
+        }}
+      />
 
       {/* Transaction History Section */}
       {transactions.length > 0 && (
