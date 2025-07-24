@@ -119,6 +119,29 @@ const AIAgentPage: React.FC = () => {
         approved_at: undefined,
         execution_date: undefined,
       });
+
+      plansToSet.push({
+        id: 'plan-q3-2025',
+        name: 'Q2 Mining Operations',
+        amount: 100000,
+        status: 'draft' as const,
+        created_at: new Date().toISOString(),
+        allocations: [
+          { category: 'utilities', amount: 25000, description: 'Electricity and cooling costs for 24/7 operation.', chain: "SUI" },
+          { category: 'maintenance', amount: 15000, description: 'Allocate funds for equipment maintenance and repairs.', chain: 'SUI' },
+          { category: 'equipment', amount: 20000, description: 'Procurement of new mining rigs and hardware upgrades.', chain: "BSC" },
+          { category: 'wages', amount: 20000, description: 'Monthly salaries for on-site staff and technicians.', chain: "Base" },
+          { category: 'insurance', amount: 5000, description: 'Pay insurance premiums to protect assets and operations.', chain: "Avalanche" },
+          { category: 'insurance', amount: 5000, description: 'Set aside funds for tax payments and provisions.', chain: "Avalanche" },
+          { category: 'reserve', amount: 10000, description: 'Contingency fund for unexpected expenses.', chain: "Self-custody" }
+        ],
+        total_allocated: 100000,
+        explanation: 'AI-optimized allocation for Q3 2025: Prioritize covering essential operational costs such as maintenance, utility, and wages. Investments in new equipment are made to enhance hash rate. Insurance and taxes are covered to ensure compliance and protection. Remaining funds are allocated to and emergency reserves for risk mitigation.',
+        priorities: { high: ['equipment'], medium: ['utilities'], low: ['reserve', 'wages'] },
+        constraints: {},
+        approved_at: undefined,
+        execution_date: undefined,
+      });
       console.log('Spending plans after loading:', plansToSet);
       setSpendingPlans(plansToSet);
 
@@ -149,6 +172,7 @@ const AIAgentPage: React.FC = () => {
         execution_date: undefined,
       };
       setSpendingPlans([examplePlan]);
+      setSpendingPlans([]);
       console.log('API failed, showing only example plan');
       // Optionally, setTransactions([]) or handle transaction fallback
     }
